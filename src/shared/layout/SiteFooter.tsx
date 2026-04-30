@@ -1,14 +1,21 @@
+"use client";
+
 import Link from "next/link";
 import logo from "@/assets/asvf-logo.png";
+import { useSiteSettings } from "./useSiteSettings";
 
 export function SiteFooter() {
+  const settings = useSiteSettings();
+  const contactEmail = settings.contactEmail || "contact@asvf.com";
+  const brandName = settings.siteTitle || "ASVF Venture Fund";
+
   return (
     <footer className="mt-12 border-t border-navy-ink/10 bg-cream-warm/70">
       <div className="max-w-7xl mx-auto px-6 py-12 grid gap-8 md:grid-cols-3">
         <div>
           <img
             src={typeof logo === "string" ? logo : logo.src}
-            alt="Amazon Smbhav Venture Fund"
+            alt={brandName}
             className="h-9 w-auto object-contain"
           />
           <p className="text-sm text-navy-ink/60 mt-2 max-w-xs">
@@ -42,11 +49,11 @@ export function SiteFooter() {
         </div>
         <div className="text-sm">
           <p className="font-bold mb-3 text-navy-ink">Contact</p>
-          <a href="mailto:contact@asvf.com" className="text-amber-brand font-semibold">
-            contact@asvf.com
+          <a href={`mailto:${contactEmail}`} className="text-amber-brand font-semibold">
+            {contactEmail}
           </a>
           <p className="text-navy-ink/50 mt-6 text-xs">
-            © {new Date().getFullYear()} ASVF Venture Fund
+            © {new Date().getFullYear()} {brandName}
           </p>
         </div>
       </div>

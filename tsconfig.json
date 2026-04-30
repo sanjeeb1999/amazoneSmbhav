@@ -17,9 +17,7 @@
       "DOM",
       "DOM.Iterable"
     ],
-    "types": [
-      "vite/client"
-    ],
+    "types": [],
     /* Bundler mode */
     "moduleResolution": "Bundler",
     "allowImportingTsExtensions": true,

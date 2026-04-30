@@ -1,4 +1,6 @@
+# -----------------------------
 # Logs
+# -----------------------------
 logs
 *.log
 npm-debug.log*
@@ -7,26 +9,57 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-.output
-.vinxi
-.tanstack/**
-.nitro
+# -----------------------------
+# Node
+# -----------------------------
+node_modules/
+
+# -----------------------------
+# Next.js (IMPORTANT)
+# -----------------------------
+.next/
+out/
+build/
+
+# -----------------------------
+# Production builds
+# -----------------------------
+dist/
+dist-ssr/
+
+# -----------------------------
+# Environment variables
+# -----------------------------
+.env
+.env.*
+!.env.example
+
+# -----------------------------
+# Cache / temp
+# -----------------------------
+.cache/
+.tmp/
 *.local
 
-# Wrangler / Cloudflare
-.wrangler/
-.dev.vars
-
-# Editor directories and files
+# -----------------------------
+# Editor files
+# -----------------------------
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# -----------------------------
+# Optional (remove if unused)
+# -----------------------------
+.output/
+.vinxi/
+.tanstack/
+.nitro/
+.wrangler/
+.dev.vars

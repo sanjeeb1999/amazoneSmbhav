@@ -5,6 +5,7 @@ import { z } from "zod";
 import { Facebook, Instagram, Linkedin, Mail, Send } from "lucide-react";
 import { SiteHeader } from "@/shared/layout/SiteHeader";
 import { SiteFooter } from "@/shared/layout/SiteFooter";
+import { useSiteSettings } from "@/shared/layout/useSiteSettings";
 import { toast } from "sonner";
 
 const contactSchema = z.object({
@@ -17,6 +18,15 @@ const contactSchema = z.object({
 });
 
 export function ContactPage() {
+  const settings = useSiteSettings();
+  const contactEmail = settings.contactEmail || "contact@asvf.com";
+  const socialItems = [
+    { icon: Facebook, label: "Facebook", href: settings.socialLinks.facebook },
+    { icon: Linkedin, label: "LinkedIn", href: settings.socialLinks.linkedin },
+    { icon: Instagram, label: "Instagram", href: settings.socialLinks.instagram },
+    { icon: Mail, label: "Email", href: contactEmail ? `mailto:${contactEmail}` : "" },
+  ];
+
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -28,7 +38,7 @@ export function ContactPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const result = contactSchema.safeParse(form);
     if (!result.success) {
@@ -39,9 +49,20 @@ export function ContactPage() {
     }
     setErrors({});
     setSubmitting(true);
-    // TODO: POST to /api/contact when backend is wired
-    setTimeout(() => {
-      setSubmitting(false);
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const json = (await res.json()) as { success?: boolean; message?: string };
+      if (!res.ok || !json.success) {
+        toast.error(json.message ?? "Failed to send message.");
+        return;
+      }
+
       setForm({
         firstName: "",
         lastName: "",
@@ -51,7 +72,11 @@ export function ContactPage() {
         message: "",
       });
       toast.success("Thanks — we'll be in touch shortly.");
-    }, 600);
+    } catch {
+      toast.error("Failed to send message.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -98,10 +123,10 @@ export function ContactPage() {
                 <div>
                   <p className="text-base font-bold text-navy-ink">Email</p>
                   <a
-                    href="mailto:contact@asvf.com"
+                    href={`mailto:${contactEmail}`}
                     className="mt-1 inline-block text-sm font-bold text-gold-deep hover:opacity-80"
                   >
-                    contact@asvf.com
+                    {contactEmail}
                   </a>
                 </div>
 
@@ -116,20 +141,17 @@ export function ContactPage() {
                 </div>
 
                 <div className="flex items-center gap-3 pt-1">
-                  {[
-                    { icon: Facebook, label: "Facebook" },
-                    { icon: Linkedin, label: "LinkedIn" },
-                    { icon: Instagram, label: "Instagram" },
-                    { icon: Mail, label: "Email" },
-                  ].map(({ icon: Icon, label }) => (
-                    <button
+                  {socialItems.map(({ icon: Icon, label, href }) => (
+                    <a
                       key={label}
-                      type="button"
+                      href={href || "#"}
+                      target={href ? "_blank" : undefined}
+                      rel={href ? "noreferrer" : undefined}
                       aria-label={label}
                       className="size-9 rounded-full border border-amber-brand/35 text-gold-deep inline-flex items-center justify-center hover:bg-amber-brand/12"
                     >
                       <Icon className="size-4" />
-                    </button>
+                    </a>
                   ))}
                 </div>
               </div>

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/carousel";
 import { SiteHeader } from "@/shared/layout/SiteHeader";
 import { SiteFooter } from "@/shared/layout/SiteFooter";
+import { useSiteSettings } from "@/shared/layout/useSiteSettings";
 
 const stats = [
   { value: "$350M+", label: "Capital Deployed", note: "+18% YoY" },
@@ -25,7 +26,14 @@ const stats = [
   { value: "12", label: "Active Sectors", note: "Diversified exposure" },
 ];
 
-const portfolio = [
+type HomePortfolioItem = {
+  name: string;
+  desc: string;
+  img: string | { src: string };
+  tag: string;
+};
+
+const portfolioFallback: HomePortfolioItem[] = [
   {
     name: "NovaIQ",
     desc: "Applied AI stack for enterprise.",
@@ -75,7 +83,17 @@ const offerings = [
   },
 ];
 
-const bannerSlides = [
+type BannerSlide = {
+  eyebrow: string;
+  title: string;
+  description: string;
+  ctaLabel: string;
+  ctaTo: string;
+  image: string | { src: string };
+  alt: string;
+};
+
+const bannerSlides: BannerSlide[] = [
   {
     eyebrow: "Global Reach",
     title: "Scaling visionary teams across markets.",
@@ -106,7 +124,7 @@ const bannerSlides = [
     image: portfolioOffice,
     alt: "Modern office environment with product teams",
   },
-] as const;
+];
 
 function getImageSrc(image: string | { src: string }) {
   return typeof image === "string" ? image : image.src;
@@ -116,6 +134,75 @@ function BannerCarousel() {
   const [api, setApi] = React.useState<CarouselApi>();
   const [activeIndex, setActiveIndex] = React.useState(0);
   const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
+  const [slides, setSlides] = React.useState<BannerSlide[]>([]);
+  const [bannerLoading, setBannerLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function loadBanner() {
+      try {
+        const res = await fetch("/api/banner", { cache: "no-store" });
+        const json = await res.json();
+        const apiBanners = Array.isArray(json?.data) ? json.data : [];
+        if (cancelled) return;
+
+        if (apiBanners.length === 0) {
+          setSlides(bannerSlides);
+          setBannerLoading(false);
+          return;
+        }
+
+        const mappedSlides: BannerSlide[] = apiBanners.map(
+          (banner: Record<string, unknown>, index: number) => {
+            const fallback = bannerSlides[index % bannerSlides.length];
+
+            return {
+              eyebrow: fallback.eyebrow,
+              title:
+                typeof banner.title === "string" && banner.title.trim()
+                  ? banner.title
+                  : fallback.title,
+              description:
+                typeof banner.subtitle === "string" && banner.subtitle.trim()
+                  ? banner.subtitle
+                  : fallback.description,
+              ctaLabel:
+                typeof banner.ctaLabel === "string" && banner.ctaLabel.trim()
+                  ? banner.ctaLabel
+                  : fallback.ctaLabel,
+              ctaTo:
+                typeof banner.ctaTo === "string" && banner.ctaTo.trim()
+                  ? banner.ctaTo
+                  : fallback.ctaTo,
+              image:
+                typeof banner.image === "string" && banner.image.trim()
+                  ? banner.image
+                  : fallback.image,
+              alt:
+                typeof banner.title === "string" && banner.title.trim()
+                  ? banner.title
+                  : fallback.alt,
+            };
+          },
+        );
+
+        setSlides(mappedSlides);
+        setBannerLoading(false);
+      } catch {
+        if (!cancelled) {
+          // Use static fallback only after API request fails.
+          setSlides(bannerSlides);
+          setBannerLoading(false);
+        }
+      }
+    }
+
+    loadBanner();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   React.useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -150,6 +237,19 @@ function BannerCarousel() {
     return () => window.clearInterval(timer);
   }, [api, prefersReducedMotion]);
 
+  if (bannerLoading) {
+    return (
+      <section className="relative flex min-h-[78vh] items-center overflow-hidden pt-20 pb-22 md:min-h-[82vh] md:pt-24 md:pb-26">
+        <div className="w-full px-6 md:px-10 lg:px-16 xl:px-24">
+          <div className="h-8 w-40 animate-pulse rounded-full bg-navy-ink/10" />
+          <div className="mt-6 h-20 w-full max-w-[34rem] animate-pulse rounded-xl bg-navy-ink/10" />
+          <div className="mt-5 h-10 w-full max-w-[40rem] animate-pulse rounded-xl bg-navy-ink/10" />
+          <div className="mt-7 h-12 w-44 animate-pulse rounded-full bg-navy-ink/10" />
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="relative flex min-h-[78vh] items-center overflow-hidden pt-20 pb-22 md:min-h-[82vh] md:pt-24 md:pb-26">
       <div className="absolute inset-0 -z-10 pointer-events-none">
@@ -161,7 +261,7 @@ function BannerCarousel() {
       <div className="w-full px-0">
         <Carousel setApi={setApi} opts={{ loop: true, duration: 62 }} className="relative">
           <CarouselContent className="-ml-0">
-            {bannerSlides.map((slide, index) => {
+            {slides.map((slide, index) => {
               const isActive = index === activeIndex;
               return (
                 <CarouselItem key={slide.title} className="pl-0">
@@ -232,7 +332,6 @@ function BannerCarousel() {
               );
             })}
           </CarouselContent>
-
         </Carousel>
       </div>
     </section>
@@ -264,7 +363,56 @@ function useHomepageReveal() {
 }
 
 export function HomePage() {
+  const settings = useSiteSettings();
+  const contactEmail = settings.contactEmail || "contact@asvf.com";
+
   useHomepageReveal();
+  const [portfolioItems, setPortfolioItems] = React.useState<HomePortfolioItem[]>([]);
+  const [portfolioLoading, setPortfolioLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function loadPortfolio() {
+      try {
+        const res = await fetch("/api/portfolio", { cache: "no-store" });
+        const json = await res.json();
+        const apiItems = Array.isArray(json?.data) ? json.data : [];
+        if (cancelled) return;
+
+        if (apiItems.length === 0) {
+          setPortfolioItems(portfolioFallback);
+          setPortfolioLoading(false);
+          return;
+        }
+
+        const mapped: HomePortfolioItem[] = apiItems.map((item: Record<string, unknown>) => ({
+          name: typeof item.title === "string" && item.title.trim() ? item.title : "Untitled",
+          desc:
+            typeof item.description === "string" && item.description.trim() ? item.description : "",
+          img:
+            typeof item.image === "string" && item.image.trim()
+              ? item.image
+              : portfolioFallback[0].img,
+          tag:
+            typeof item.category === "string" && item.category.trim() ? item.category : "General",
+        }));
+
+        setPortfolioItems(mapped);
+        setPortfolioLoading(false);
+      } catch {
+        if (!cancelled) {
+          setPortfolioItems(portfolioFallback);
+          setPortfolioLoading(false);
+        }
+      }
+    }
+
+    loadPortfolio();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <main className="min-h-dvh text-navy-ink selection:bg-amber-brand/30">
@@ -275,7 +423,10 @@ export function HomePage() {
       </div>
 
       {/* Stats */}
-      <section data-reveal className="reveal-section max-w-7xl mx-auto px-6 -mt-6 mb-16 relative z-10">
+      <section
+        data-reveal
+        className="reveal-section max-w-7xl mx-auto px-6 -mt-6 mb-16 relative z-10"
+      >
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((s) => (
             <div
@@ -316,11 +467,9 @@ export function HomePage() {
               <div className="pointer-events-none absolute -left-8 -bottom-10 size-24 rounded-full bg-gold-deep/20 opacity-0 blur-2xl transition-opacity duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:opacity-100" />
 
               <div className="relative z-10">
-              <div
-                  className="mb-5 flex size-10 items-center justify-center rounded-full bg-amber-brand/12 text-gold-deep transition-all delay-100 duration-[800ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105 group-hover:bg-amber-brand group-hover:text-navy-ink"
-              >
-                <span className="font-bold text-sm">0{i + 1}</span>
-              </div>
+                <div className="mb-5 flex size-10 items-center justify-center rounded-full bg-amber-brand/12 text-gold-deep transition-all delay-100 duration-[800ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105 group-hover:bg-amber-brand group-hover:text-navy-ink">
+                  <span className="font-bold text-sm">0{i + 1}</span>
+                </div>
                 <h4 className="mb-3 font-heading text-[1.36rem] font-extrabold leading-[1.2] tracking-[-0.015em] text-navy-ink transition-colors delay-150 duration-[850ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:text-cream-warm">
                   {o.title}
                 </h4>
@@ -361,27 +510,40 @@ export function HomePage() {
             View all <span className="group-hover:translate-x-1 transition-transform">→</span>
           </Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {portfolio.map((p) => (
-            <div key={p.name} className="group cursor-pointer">
-              <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 shadow-[var(--shadow-soft)]">
-                <img
-                  src={getImageSrc(p.img)}
-                  alt={p.name}
-                  width={800}
-                  height={600}
-                  loading="lazy"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
+        {portfolioLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="group">
+                <div className="aspect-[4/3] rounded-2xl mb-4 bg-navy-ink/10 animate-pulse" />
+                <div className="h-3 w-24 rounded bg-navy-ink/10 animate-pulse" />
+                <div className="mt-2 h-6 w-40 rounded bg-navy-ink/10 animate-pulse" />
+                <div className="mt-2 h-4 w-full rounded bg-navy-ink/10 animate-pulse" />
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-gold-deep">
-                {p.tag}
-              </span>
-              <h3 className="font-heading font-bold text-xl mt-1">{p.name}</h3>
-              <p className="text-sm text-navy-ink/60 mt-1 leading-relaxed">{p.desc}</p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {portfolioItems.map((p) => (
+              <div key={p.name} className="group cursor-pointer">
+                <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 shadow-[var(--shadow-soft)]">
+                  <img
+                    src={getImageSrc(p.img)}
+                    alt={p.name}
+                    width={800}
+                    height={600}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-gold-deep">
+                  {p.tag}
+                </span>
+                <h3 className="font-heading font-bold text-xl mt-1">{p.name}</h3>
+                <p className="text-sm text-navy-ink/60 mt-1 leading-relaxed">{p.desc}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Aspirational Companies */}
@@ -403,8 +565,8 @@ export function HomePage() {
               Let's build something <span className="text-amber-brand italic">great</span> together.
             </h2>
             <p className="mx-auto mb-9 max-w-2xl text-base leading-relaxed text-navy-ink/68 transition-colors delay-220 duration-[860ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:text-cream-warm/78 md:text-lg">
-              Partner with a team that helps founders scale with strategic capital, operating
-              depth, and long-term conviction.
+              Partner with a team that helps founders scale with strategic capital, operating depth,
+              and long-term conviction.
             </p>
             <Link
               href="/contact"
@@ -423,10 +585,10 @@ export function HomePage() {
           <p className="text-lg text-navy-ink/70">
             Write to us at{" "}
             <a
-              href="mailto:contact@asvf.com"
+              href={`mailto:${contactEmail}`}
               className="text-amber-brand font-bold border-b-2 border-amber-brand/40 hover:border-amber-brand transition-colors"
             >
-              contact@asvf.com
+              {contactEmail}
             </a>
           </p>
         </div>

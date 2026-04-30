@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SiteHeader } from "@/shared/layout/SiteHeader";
 import { SiteFooter } from "@/shared/layout/SiteFooter";
+import portfolioAiImage from "@/assets/portfolio-ai.jpg";
+import portfolioGridImage from "@/assets/portfolio-grid.jpg";
+import portfolioOfficeImage from "@/assets/portfolio-office.jpg";
 
 type PortfolioCompany = {
   _id: string;
@@ -17,7 +20,7 @@ const portfolioSeed: PortfolioCompany[] = [
   {
     _id: "p1",
     name: "NovaIQ",
-    logo: "",
+    logo: portfolioAiImage.src,
     description: "Applied AI stack for enterprise automation.",
     sector: "AI",
     website: "#",
@@ -25,7 +28,7 @@ const portfolioSeed: PortfolioCompany[] = [
   {
     _id: "p2",
     name: "AetherGrid",
-    logo: "",
+    logo: portfolioGridImage.src,
     description: "Resilient cloud infrastructure for high-growth teams.",
     sector: "Infra",
     website: "#",
@@ -33,7 +36,7 @@ const portfolioSeed: PortfolioCompany[] = [
   {
     _id: "p3",
     name: "FreshToHome",
-    logo: "",
+    logo: portfolioOfficeImage.src,
     description: "Supply chain intelligence for modern commerce.",
     sector: "Logistics",
     website: "#",
@@ -55,11 +58,54 @@ function Initials({ name }: { name: string }) {
 }
 
 export function PortfolioPage() {
-  const [items] = useState<PortfolioCompany[]>(portfolioSeed);
+  const [items, setItems] = useState<PortfolioCompany[]>(portfolioSeed);
   const [filter, setFilter] = useState<string>("All");
 
   const sectors = ["All", ...Array.from(new Set(items.map((i) => i.sector)))];
   const visible = filter === "All" ? items : items.filter((i) => i.sector === filter);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPortfolio() {
+      try {
+        const res = await fetch("/api/portfolio", { cache: "no-store" });
+        const json = await res.json();
+        const apiData = json?.data as unknown;
+
+        if (!Array.isArray(apiData)) return;
+
+        type ApiPortfolioItem = {
+          _id?: unknown;
+          title?: unknown;
+          description?: unknown;
+          image?: unknown;
+          category?: unknown;
+          link?: unknown;
+        };
+
+        const typed = apiData as ApiPortfolioItem[];
+
+        const mapped: PortfolioCompany[] = typed.map((p, index) => ({
+          _id: typeof p?._id === "string" ? p._id : String(p?._id ?? index),
+          name: typeof p?.title === "string" ? p.title : "Untitled",
+          logo: typeof p?.image === "string" ? p.image : "",
+          description: typeof p?.description === "string" ? p.description : "",
+          sector: typeof p?.category === "string" ? p.category : "",
+          website: typeof p?.link === "string" ? p.link : "#",
+        }));
+
+        if (!cancelled) setItems(mapped);
+      } catch {
+        // Keep seed data on failure so the UI never breaks.
+      }
+    }
+
+    loadPortfolio();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <main className="min-h-dvh">
@@ -104,13 +150,13 @@ export function PortfolioPage() {
               href={c.website || "#"}
               target="_blank"
               rel="noreferrer"
-              className="bg-card rounded-2xl p-6 border border-navy-ink/5 shadow-[var(--shadow-soft)] hover:-translate-y-1 transition-all flex gap-4 group animate-in fade-in"
+              className="bg-card rounded-2xl p-6 border border-navy-ink/5 shadow-[var(--shadow-soft)] hover:-translate-y-1 transition-all flex flex-col gap-4 group animate-in fade-in"
             >
               {c.logo ? (
                 <img
                   src={c.logo}
                   alt={c.name}
-                  className="size-14 rounded-2xl object-cover shrink-0"
+                  className="w-full h-40 rounded-2xl object-cover shrink-0"
                 />
               ) : (
                 <Initials name={c.name} />

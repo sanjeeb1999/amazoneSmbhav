@@ -2,14 +2,14 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ExternalLink, Linkedin, Mail, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import aspirationalHealth from "@/assets/aspirational-health.jpg";
 import heroCollab from "@/assets/hero-collab.jpg";
 import portfolioTeam from "@/assets/portfolio-team.jpg";
 import { SiteHeader } from "@/shared/layout/SiteHeader";
 import { SiteFooter } from "@/shared/layout/SiteFooter";
 
-type TeamCategory = "investment" | "finance" | "business";
+type TeamCategory = string;
 
 type TeamMemberView = {
   id: string;
@@ -127,12 +127,111 @@ const DEPARTMENTS: Department[] = [
 ];
 
 export function TeamPage() {
-  const [active, setActive] = useState<TeamCategory>("investment");
+  const [active, setActive] = useState<TeamCategory>("");
   const [selectedMember, setSelectedMember] = useState<TeamMemberView | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [teamLoading, setTeamLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTeam() {
+      try {
+        const res = await fetch("/api/team", { cache: "no-store" });
+        const json = await res.json();
+        const apiData = json?.data as unknown;
+
+        if (!Array.isArray(apiData) || apiData.length === 0) {
+          if (cancelled) return;
+          setDepartments(DEPARTMENTS);
+          setActive(DEPARTMENTS[0].id);
+          return;
+        }
+
+        type ApiTeamItem = {
+          _id?: unknown;
+          name?: unknown;
+          role?: unknown;
+          image?: unknown;
+          bio?: unknown;
+          category?: unknown;
+        };
+
+        const typed = apiData as ApiTeamItem[];
+
+        const grouped = new Map<string, TeamMemberView[]>();
+
+        typed.forEach((m, index) => {
+          const name = typeof m?.name === "string" ? m.name : `Member ${index + 1}`;
+          const role = typeof m?.role === "string" ? m.role : "";
+          const bio = typeof m?.bio === "string" ? m.bio : "";
+          const image = typeof m?.image === "string" ? m.image : "";
+          const categoryRaw = typeof m?.category === "string" ? m.category.trim() : "";
+          const category = categoryRaw || "General";
+
+          const tagline = bio ? `${bio.slice(0, 95)}${bio.length > 95 ? "…" : ""}` : role || name;
+
+          const existing = grouped.get(category) ?? [];
+          existing.push({
+            id: typeof m?._id === "string" ? m._id : String(index),
+            name,
+            role,
+            image: image || portfolioTeam,
+            tagline,
+            bio,
+            department: category,
+            departmentLabel: category,
+            featured: false,
+            timeline: bio ? [bio] : [],
+            email: "",
+            linkedIn: "#",
+          });
+          grouped.set(category, existing);
+        });
+
+        if (cancelled) return;
+
+        const dynamicDepartments = Array.from(grouped.entries()).map(([category, members]) => ({
+          id: category,
+          label: category,
+          members,
+        }));
+
+        if (dynamicDepartments.length === 0) {
+          setDepartments(DEPARTMENTS);
+          setActive(DEPARTMENTS[0].id);
+          return;
+        }
+
+        setDepartments(dynamicDepartments);
+        setActive(dynamicDepartments[0].id);
+      } catch {
+        if (!cancelled) {
+          setDepartments(DEPARTMENTS);
+          setActive(DEPARTMENTS[0].id);
+        }
+      } finally {
+        if (!cancelled) setTeamLoading(false);
+      }
+    }
+
+    loadTeam();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const activeDepartment = useMemo(
-    () => DEPARTMENTS.find((department) => department.id === active) ?? DEPARTMENTS[0],
-    [active],
+    () => departments.find((department) => department.id === active) ?? departments[0],
+    [active, departments],
   );
+
+  function getDepartmentBadgeClass(department: string) {
+    const normalized = department.toLowerCase();
+    if (normalized === "investment") return "bg-amber-brand/15 text-amber-800";
+    if (normalized === "finance") return "bg-emerald-500/15 text-emerald-700";
+    return "bg-indigo-500/15 text-indigo-700";
+  }
 
   return (
     <main className="min-h-dvh">
@@ -154,7 +253,7 @@ export function TeamPage() {
             role="tablist"
             aria-label="Team department filters"
           >
-            {DEPARTMENTS.map((department) => {
+            {departments.map((department) => {
               const isActive = active === department.id;
               const count = department.members.length;
               return (
@@ -199,89 +298,98 @@ export function TeamPage() {
       </section>
 
       <section className="max-w-6xl mx-auto px-6 pb-24 pt-2">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={active}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {activeDepartment.members.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-navy-ink/20 bg-cream-warm/70 p-12 text-center text-navy-ink/55">
-                No team members available
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
-                {activeDepartment.members.map((member, index) => (
-                  <motion.article
-                    key={member.id}
-                    initial={{ opacity: 0, y: 14 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.36, delay: index * 0.1 }}
-                    whileHover={{ y: -8 }}
-                    className="group relative h-full overflow-hidden rounded-2xl border border-navy-ink/10 bg-cream-warm/70 backdrop-blur-md p-4 sm:p-5 shadow-[0_8px_26px_-18px_rgba(15,23,42,0.35)] hover:shadow-[0_22px_45px_-18px_rgba(15,23,42,0.4)] transition-all duration-300 flex flex-col"
-                  >
-                    <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-amber-brand/10 via-transparent to-navy-ink/10" />
-                    <div className="aspect-[3/4] overflow-hidden rounded-xl bg-navy-ink/5">
-                      <img
-                        src={getImageSrc(member.image)}
-                        alt={member.name}
-                        className="h-full w-full object-cover grayscale-[25%] group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    <div className="relative z-10 flex-1 flex flex-col">
-                      <h3 className="mt-4 font-heading text-xl font-bold text-navy-ink">{member.name}</h3>
-                      <div className="mt-2 flex items-center gap-2">
-                        <span className="rounded-full bg-navy-ink/10 px-2.5 py-1 text-[11px] font-semibold text-navy-ink/80">
-                          {member.role}
-                        </span>
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                            member.department === "investment"
-                              ? "bg-amber-brand/15 text-amber-800"
-                              : member.department === "finance"
-                                ? "bg-emerald-500/15 text-emerald-700"
-                                : "bg-indigo-500/15 text-indigo-700"
-                          }`}
-                        >
-                          {member.departmentLabel}
-                        </span>
+        {teamLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+            {[0, 1, 2].map((item) => (
+              <div
+                key={item}
+                className="h-[380px] rounded-2xl border border-navy-ink/10 bg-cream-warm/70 animate-pulse"
+              />
+            ))}
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={active}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {activeDepartment?.members?.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-navy-ink/20 bg-cream-warm/70 p-12 text-center text-navy-ink/55">
+                  No team members available
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+                  {activeDepartment?.members?.map((member, index) => (
+                    <motion.article
+                      key={member.id}
+                      initial={{ opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.36, delay: index * 0.1 }}
+                      whileHover={{ y: -8 }}
+                      className="group relative h-full overflow-hidden rounded-2xl border border-navy-ink/10 bg-cream-warm/70 backdrop-blur-md p-4 sm:p-5 shadow-[0_8px_26px_-18px_rgba(15,23,42,0.35)] hover:shadow-[0_22px_45px_-18px_rgba(15,23,42,0.4)] transition-all duration-300 flex flex-col"
+                    >
+                      <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-amber-brand/10 via-transparent to-navy-ink/10" />
+                      <div className="aspect-[3/4] overflow-hidden rounded-xl bg-navy-ink/5">
+                        <img
+                          src={getImageSrc(member.image)}
+                          alt={member.name}
+                          className="h-full w-full object-cover grayscale-[25%] group-hover:scale-105 transition-transform duration-300"
+                        />
                       </div>
-                      <p className="mt-3 text-sm text-navy-ink/70 min-h-[40px]">{member.tagline}</p>
-                    </div>
-                    <div className="mt-4 flex items-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedMember(member)}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-navy-ink text-white px-3 py-2 text-xs font-semibold hover:bg-navy-ink/90"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        View Profile
-                      </button>
-                      <a
-                        href={`mailto:${member.email}`}
-                        className="inline-flex items-center justify-center rounded-lg border border-navy-ink/15 bg-cream-warm/90 px-2.5 py-2 text-navy-ink hover:border-amber-brand/45 hover:text-amber-brand"
-                        aria-label={`Email ${member.name}`}
-                      >
-                        <Mail className="h-4 w-4" />
-                      </a>
-                      <a
-                        href={member.linkedIn}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center rounded-lg border border-navy-ink/15 bg-cream-warm/90 px-2.5 py-2 text-navy-ink hover:border-amber-brand/45 hover:text-amber-brand"
-                        aria-label={`${member.name} LinkedIn`}
-                      >
-                        <Linkedin className="h-4 w-4" />
-                      </a>
-                    </div>
-                  </motion.article>
-                ))}
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+                      <div className="relative z-10 flex-1 flex flex-col">
+                        <h3 className="mt-4 font-heading text-xl font-bold text-navy-ink">
+                          {member.name}
+                        </h3>
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="rounded-full bg-navy-ink/10 px-2.5 py-1 text-[11px] font-semibold text-navy-ink/80">
+                            {member.role}
+                          </span>
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getDepartmentBadgeClass(member.department)}`}
+                          >
+                            {member.departmentLabel}
+                          </span>
+                        </div>
+                        <p className="mt-3 text-sm text-navy-ink/70 min-h-[40px]">
+                          {member.tagline}
+                        </p>
+                      </div>
+                      <div className="mt-4 flex items-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedMember(member)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-navy-ink text-white px-3 py-2 text-xs font-semibold hover:bg-navy-ink/90"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          View Profile
+                        </button>
+                        <a
+                          href={`mailto:${member.email}`}
+                          className="inline-flex items-center justify-center rounded-lg border border-navy-ink/15 bg-cream-warm/90 px-2.5 py-2 text-navy-ink hover:border-amber-brand/45 hover:text-amber-brand"
+                          aria-label={`Email ${member.name}`}
+                        >
+                          <Mail className="h-4 w-4" />
+                        </a>
+                        <a
+                          href={member.linkedIn}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center rounded-lg border border-navy-ink/15 bg-cream-warm/90 px-2.5 py-2 text-navy-ink hover:border-amber-brand/45 hover:text-amber-brand"
+                          aria-label={`${member.name} LinkedIn`}
+                        >
+                          <Linkedin className="h-4 w-4" />
+                        </a>
+                      </div>
+                    </motion.article>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        )}
       </section>
 
       <AnimatePresence>
@@ -309,7 +417,9 @@ export function TeamPage() {
                   <h3 className="mt-2 font-heading text-3xl font-bold text-navy-ink">
                     {selectedMember.name}
                   </h3>
-                  <p className="mt-1 text-sm font-semibold text-navy-ink/70">{selectedMember.role}</p>
+                  <p className="mt-1 text-sm font-semibold text-navy-ink/70">
+                    {selectedMember.role}
+                  </p>
                 </div>
                 <button
                   type="button"
