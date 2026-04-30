@@ -1,10 +1,44 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { SiteHeader } from "@/shared/layout/SiteHeader";
 import { SiteFooter } from "@/shared/layout/SiteFooter";
-import { fetchNewsItems, type NewsItem } from "@/lib/news";
+import aspirationalHealthImage from "@/assets/aspirational-health.jpg";
+import heroCollabImage from "@/assets/hero-collab.jpg";
+import portfolioTeamImage from "@/assets/portfolio-team.jpg";
+
+type NewsItem = {
+  _id: string;
+  title: string;
+  excerpt: string;
+  date: string;
+  image: string;
+  externalLink?: string;
+};
+
+const seedItems: NewsItem[] = [
+  {
+    _id: "news-1",
+    title: "ASVF closes $120M Fund III",
+    excerpt: "Continuing our long-term commitment to category-defining founders.",
+    date: "2026-04-28T00:00:00.000Z",
+    image: aspirationalHealthImage.src,
+  },
+  {
+    _id: "news-2",
+    title: "NovaIQ raises Series B led by ASVF",
+    excerpt: "Doubling down on applied AI for the enterprise.",
+    date: "2026-04-28T00:00:00.000Z",
+    image: heroCollabImage.src,
+  },
+  {
+    _id: "news-3",
+    title: "Welcoming Sara Kapoor as Head of Platform",
+    excerpt: "Strengthening operating support across the portfolio.",
+    date: "2026-04-28T00:00:00.000Z",
+    image: portfolioTeamImage.src,
+  },
+];
 
 export function NewsPage() {
   const [items, setItems] = useState<NewsItem[]>([]);
@@ -15,10 +49,57 @@ export function NewsPage() {
 
     async function loadNews() {
       try {
-        const mapped = await fetchNewsItems();
+        const res = await fetch("/api/news", { cache: "no-store" });
+        const json = await res.json();
+        const apiData = json?.data as unknown;
+
+        if (!Array.isArray(apiData) || apiData.length === 0) {
+          if (!cancelled) setItems(seedItems);
+          return;
+        }
+
+        type ApiNewsItem = {
+          _id?: unknown;
+          title?: unknown;
+          content?: unknown;
+          date?: unknown;
+          image?: unknown;
+          externalLink?: unknown;
+        };
+
+        const typed = apiData as ApiNewsItem[];
+        const mapped: NewsItem[] = typed.map((n, index) => {
+          const id = typeof n?._id === "string" ? n._id : String(n?._id ?? index);
+          const title = typeof n?.title === "string" ? n.title : "Untitled";
+          const content = typeof n?.content === "string" ? n.content : title;
+
+          let dateValue: Date | null = null;
+          if (typeof n?.date === "string" || typeof n?.date === "number") {
+            const parsed = new Date(n.date);
+            if (!Number.isNaN(parsed.getTime())) dateValue = parsed;
+          }
+
+          const date = dateValue ? dateValue.toISOString() : new Date().toISOString();
+
+          const image = typeof n?.image === "string" ? n.image : "";
+          const externalLink =
+            typeof n?.externalLink === "string" && n.externalLink.trim().length > 0
+              ? n.externalLink
+              : undefined;
+
+          return {
+            _id: id,
+            title,
+            excerpt: content,
+            date,
+            image,
+            externalLink,
+          };
+        });
+
         if (!cancelled) setItems(mapped);
       } catch {
-        if (!cancelled) setItems([]);
+        if (!cancelled) setItems(seedItems);
       } finally {
         if (!cancelled) setNewsLoading(false);
       }
@@ -66,9 +147,14 @@ export function NewsPage() {
             {items.map((n) => (
               <li
                 key={n._id}
-                className="group animate-in fade-in bg-card rounded-2xl overflow-hidden border border-navy-ink/5 shadow-(--shadow-soft) hover:-translate-y-1 transition-all"
+                className="animate-in fade-in"
               >
-                <Link href={`/news/${n.slug}`} className="block h-full">
+                <a
+                  href={n.externalLink ?? undefined}
+                  target={n.externalLink ? "_blank" : undefined}
+                  rel={n.externalLink ? "noopener noreferrer" : undefined}
+                  className="group block h-full bg-card rounded-2xl overflow-hidden border border-navy-ink/5 shadow-(--shadow-soft) hover:-translate-y-1 transition-all"
+                >
                   <div className="aspect-video bg-navy-ink/5 overflow-hidden">
                     <img
                       src={n.image}
@@ -90,7 +176,7 @@ export function NewsPage() {
                     </h2>
                     <p className="text-navy-ink/70 mt-3 leading-relaxed">{n.excerpt}</p>
                   </div>
-                </Link>
+                </a>
               </li>
             ))}
           </ul>

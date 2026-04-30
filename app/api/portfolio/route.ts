@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as {
       title?: unknown;
       description?: unknown;
+      highlight?: unknown;
       image?: unknown;
       category?: unknown;
       link?: unknown;
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
 
     const title = typeof body?.title === "string" ? body.title.trim() : "";
     const description = typeof body?.description === "string" ? body.description.trim() : "";
+    const highlight = typeof body?.highlight === "string" ? body.highlight.trim() : "";
     const image = typeof body?.image === "string" ? body.image.trim() : "";
     const category = typeof body?.category === "string" ? body.category.trim() : "";
     const link = typeof body?.link === "string" ? body.link.trim() : "";
@@ -58,6 +60,7 @@ export async function POST(req: NextRequest) {
     const created = await Portfolio.create({
       title,
       description,
+      highlight,
       image,
       category,
       link,
@@ -84,6 +87,7 @@ export async function PUT(req: NextRequest) {
       id?: unknown;
       title?: unknown;
       description?: unknown;
+      highlight?: unknown;
       image?: unknown;
       category?: unknown;
       link?: unknown;
@@ -97,6 +101,7 @@ export async function PUT(req: NextRequest) {
     const updates: {
       title?: string;
       description?: string;
+      highlight?: string;
       image?: string;
       category?: string;
       link?: string;
@@ -104,6 +109,7 @@ export async function PUT(req: NextRequest) {
 
     if (typeof body?.title === "string") updates.title = body.title.trim();
     if (typeof body?.description === "string") updates.description = body.description.trim();
+    if (typeof body?.highlight === "string") updates.highlight = body.highlight.trim();
     if (typeof body?.image === "string") updates.image = body.image.trim();
     if (typeof body?.category === "string") updates.category = body.category.trim();
     if (typeof body?.link === "string") updates.link = body.link.trim();

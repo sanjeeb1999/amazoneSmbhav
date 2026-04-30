@@ -8,6 +8,7 @@ type PortfolioItem = {
   _id: string;
   title: string;
   description: string;
+  highlight?: string;
   image: string;
   category: string;
   link?: string;
@@ -22,6 +23,7 @@ type PortfolioApiResponse = {
 const INITIAL_FORM = {
   title: "",
   description: "",
+  highlight: "",
   image: "",
   category: "",
   link: "",
@@ -82,6 +84,7 @@ export default function AdminPortfolioPage() {
     setForm({
       title: item.title ?? "",
       description: item.description ?? "",
+      highlight: item.highlight ?? "",
       image: item.image ?? "",
       category: item.category ?? "",
       link: item.link ?? "",
@@ -157,6 +160,7 @@ export default function AdminPortfolioPage() {
     const payload: Record<string, string> = {
       title: form.title.trim(),
       description: form.description.trim(),
+      highlight: form.highlight.trim(),
       image: form.image.trim(),
       category: form.category.trim(),
       link: form.link.trim(),
@@ -220,7 +224,7 @@ export default function AdminPortfolioPage() {
 
   return (
     <>
-      <main className="min-h-dvh bg-gradient-to-br from-slate-50 via-sky-50/40 to-indigo-50/60 p-6">
+      <main className="min-h-dvh bg-linear-to-br from-slate-50 via-sky-50/40 to-indigo-50/60 p-6">
         <div className="mx-auto max-w-7xl space-y-5">
         <header>
           <h1 className="text-2xl font-bold text-navy-ink">Portfolio</h1>
@@ -434,6 +438,18 @@ export default function AdminPortfolioPage() {
                   onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
                   className="min-h-28 w-full rounded-xl border border-navy-ink/10 bg-cream-warm px-3 py-2.5 text-sm text-navy-ink outline-none focus:border-amber-brand"
                   required
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-navy-ink/65">
+                  Why it stands out
+                </label>
+                <textarea
+                  value={form.highlight}
+                  onChange={(e) => setForm((prev) => ({ ...prev, highlight: e.target.value }))}
+                  className="min-h-24 w-full rounded-xl border border-navy-ink/10 bg-cream-warm px-3 py-2.5 text-sm text-navy-ink outline-none focus:border-amber-brand"
+                  placeholder="Short highlight shown in portfolio modal"
                 />
               </div>
 
