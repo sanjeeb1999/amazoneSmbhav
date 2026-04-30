@@ -1,8 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { ExternalLink, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
 import toast from "react-hot-toast";
+import { htmlToPlainText } from "@/lib/news";
+
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
 type NewsItem = {
   _id: string;
@@ -47,6 +51,28 @@ function formatDate(input: string) {
     day: "numeric",
   });
 }
+
+const quillModules = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ["bold", "italic", "underline", "strike"],
+    [{ list: "ordered" }, { list: "bullet" }],
+    ["blockquote", "link"],
+    ["clean"],
+  ],
+};
+
+const quillFormats = [
+  "header",
+  "bold",
+  "italic",
+  "underline",
+  "strike",
+  "list",
+  "bullet",
+  "blockquote",
+  "link",
+];
 
 export default function AdminNewsPage() {
   const [items, setItems] = useState<NewsItem[]>([]);
@@ -225,7 +251,7 @@ export default function AdminNewsPage() {
 
   return (
     <>
-      <main className="min-h-dvh bg-gradient-to-br from-slate-50 via-sky-50/40 to-indigo-50/60 p-6">
+      <main className="min-h-dvh bg-linear-to-br from-slate-50 via-sky-50/40 to-indigo-50/60 p-6">
         <div className="mx-auto max-w-7xl space-y-5">
           <header>
             <h1 className="text-2xl font-bold text-navy-ink">News & Events</h1>
@@ -282,7 +308,9 @@ export default function AdminNewsPage() {
                     </div>
 
                     <p className="mt-3 line-clamp-1 text-lg font-semibold text-navy-ink">{item.title}</p>
-                    <p className="mt-1 line-clamp-3 text-sm text-navy-ink/70">{shorten(item.content)}</p>
+                    <p className="mt-1 line-clamp-3 text-sm text-navy-ink/70">
+                      {shorten(htmlToPlainText(item.content))}
+                    </p>
 
                     <div className="mt-4 border-t border-navy-ink/10 pt-3">
                       {item.externalLink ? (
@@ -419,12 +447,16 @@ export default function AdminNewsPage() {
                 <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-navy-ink/65">
                   Content
                 </label>
-                <textarea
-                  value={form.content}
-                  onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))}
-                  className="min-h-28 w-full rounded-xl border border-navy-ink/10 bg-cream-warm px-3 py-2.5 text-sm text-navy-ink outline-none focus:border-amber-brand"
-                  required
-                />
+                <div className="rounded-xl border border-navy-ink/10 bg-white p-2">
+                  <ReactQuill
+                    theme="snow"
+                    value={form.content}
+                    onChange={(value) => setForm((prev) => ({ ...prev, content: value }))}
+                    modules={quillModules}
+                    formats={quillFormats}
+                    className="bg-white text-sm text-navy-ink"
+                  />
+                </div>
               </div>
 
               <div className="md:col-span-2 flex gap-2 pt-2">

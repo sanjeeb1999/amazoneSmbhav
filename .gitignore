@@ -63,3 +63,4 @@ dist-ssr/
 .nitro/
 .wrangler/
 .dev.vars
+.vercel

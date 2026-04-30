@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "react-quill-new/dist/quill.snow.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {

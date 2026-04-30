@@ -4,10 +4,6 @@ import { connectDB } from "../../../lib/db";
 import { getUserFromRequest } from "../../../lib/rbac";
 import Banner from "../../../models/Banner";
 
-function isNextResponse(value: unknown): value is NextResponse {
-  return value instanceof NextResponse;
-}
-
 export const runtime = "nodejs";
 
 // GET /api/banner (public)
@@ -35,6 +31,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as {
       title?: unknown;
       subtitle?: unknown;
+      description?: unknown;
       image?: unknown;
       ctaLabel?: unknown;
       ctaTo?: unknown;
@@ -42,20 +39,24 @@ export async function POST(req: NextRequest) {
 
     const title = typeof body?.title === "string" ? body.title.trim() : "";
     const subtitle = typeof body?.subtitle === "string" ? body.subtitle.trim() : "";
+    const description = typeof body?.description === "string" ? body.description.trim() : "";
     const image = typeof body?.image === "string" ? body.image.trim() : "";
     const ctaLabel = typeof body?.ctaLabel === "string" ? body.ctaLabel.trim() : "";
     const ctaTo = typeof body?.ctaTo === "string" ? body.ctaTo.trim() : "";
 
-    if (!title || !subtitle || !image || !ctaLabel || !ctaTo) {
+    if (!title || !subtitle || !description || !image || !ctaLabel || !ctaTo) {
       return NextResponse.json(
-        { success: false, message: "title, subtitle, image, ctaLabel, and ctaTo are required" },
+        {
+          success: false,
+          message: "title, subtitle, description, image, ctaLabel, and ctaTo are required",
+        },
         { status: 400 },
       );
     }
 
     await connectDB();
 
-    const created = await Banner.create({ title, subtitle, image, ctaLabel, ctaTo });
+    const created = await Banner.create({ title, subtitle, description, image, ctaLabel, ctaTo });
 
     return NextResponse.json({ success: true, data: created.toObject() }, { status: 201 });
   } catch {
@@ -78,6 +79,7 @@ export async function PUT(req: NextRequest) {
       id?: unknown;
       title?: unknown;
       subtitle?: unknown;
+      description?: unknown;
       image?: unknown;
       ctaLabel?: unknown;
       ctaTo?: unknown;
@@ -91,12 +93,14 @@ export async function PUT(req: NextRequest) {
     const updates: {
       title?: string;
       subtitle?: string;
+      description?: string;
       image?: string;
       ctaLabel?: string;
       ctaTo?: string;
     } = {};
     if (typeof body?.title === "string") updates.title = body.title.trim();
     if (typeof body?.subtitle === "string") updates.subtitle = body.subtitle.trim();
+    if (typeof body?.description === "string") updates.description = body.description.trim();
     if (typeof body?.image === "string") updates.image = body.image.trim();
     if (typeof body?.ctaLabel === "string") updates.ctaLabel = body.ctaLabel.trim();
     if (typeof body?.ctaTo === "string") updates.ctaTo = body.ctaTo.trim();

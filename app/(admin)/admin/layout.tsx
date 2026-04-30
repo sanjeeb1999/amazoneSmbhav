@@ -8,7 +8,7 @@ import {
   FileText,
   Folder,
   Gauge,
-  ImageIcon,
+  Images,
   Newspaper,
   LogOut,
   Settings,
@@ -28,6 +28,7 @@ type MeResponse = {
 const PUBLIC_ADMIN_PATHS = new Set(["/admin/login", "/admin/mfa"]);
 const WORKSPACE_ITEMS = [
   { label: "Dashboard", href: "/admin/dashboard", icon: Gauge },
+  { label: "Banner", href: "/admin/banner", icon: Images },
   { label: "Portfolio", href: "/admin/portfolio", icon: Folder },
   { label: "Team", href: "/admin/team", icon: Users },
   { label: "News & Events", href: "/admin/news", icon: Newspaper },
@@ -165,7 +166,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   Pages
                 </div> */}
                 <div className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-navy-ink/50">
-                  <ImageIcon className="h-4 w-4" />
+                  <Images className="h-4 w-4" />
                   Media Library
                 </div>
                 {SYSTEM_ITEMS.map((item) => {

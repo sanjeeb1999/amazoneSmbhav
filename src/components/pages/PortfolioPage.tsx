@@ -51,7 +51,7 @@ function Initials({ name }: { name: string }) {
     .join("")
     .toUpperCase();
   return (
-    <div className="size-14 rounded-2xl bg-gradient-to-br from-amber-brand to-gold-deep text-cream-warm flex items-center justify-center font-heading font-bold text-lg shrink-0">
+    <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-amber-brand to-gold-deep text-cream-warm font-heading text-sm font-semibold shadow-[0_10px_24px_-14px_oklch(0.55_0.15_55/0.65)]">
       {initials}
     </div>
   );
@@ -108,73 +108,76 @@ export function PortfolioPage() {
   }, []);
 
   return (
-    <main className="min-h-dvh">
+    <main className="min-h-dvh bg-cream-warm text-navy-ink">
       <SiteHeader />
 
-      <section className="max-w-7xl mx-auto px-6 pt-16 md:pt-24 pb-12">
-        <p className="text-xs font-bold tracking-[0.2em] uppercase text-gold-deep mb-4">
-          Portfolio
-        </p>
-        <h1 className="text-4xl md:text-6xl font-bold leading-tight max-w-3xl">
-          Building the <span className="text-amber-brand italic">next chapter</span> of category
-          leaders.
-        </h1>
-        <p className="mt-6 text-lg text-navy-ink/70 max-w-2xl">
-          A curated set of high-conviction companies we partner with across stage and sector.
-        </p>
-      </section>
-
-      <section className="max-w-7xl mx-auto px-6 pb-6">
-        <div className="flex flex-wrap gap-2">
+      <section className="max-w-7xl mx-auto px-6 pt-16 md:pt-22 pb-7">
+        <div className="mb-7 flex flex-wrap items-center gap-2">
           {sectors.map((s) => (
             <button
               key={s}
               onClick={() => setFilter(s)}
-              className={`px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all ${
+              className={`min-w-[84px] rounded-full border px-5 py-2 text-[12px] font-semibold tracking-wide transition-all duration-300 ease-out ${
                 filter === s
-                  ? "bg-navy-ink text-cream-warm"
-                  : "bg-card border border-navy-ink/10 hover:border-amber-brand"
+                  ? "border-navy-ink bg-navy-ink text-cream-warm shadow-[0_8px_18px_-12px_oklch(0.18_0.04_260/0.7)]"
+                  : "border-navy-ink/10 bg-white text-navy-ink/80 hover:-translate-y-0.5 hover:border-amber-brand/45 hover:bg-amber-brand/10 hover:text-navy-ink"
               }`}
             >
               {s}
             </button>
           ))}
         </div>
+
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em]">Portfolio Companies</h1>
+          <p className="rounded-full border border-navy-ink/12 bg-white px-3 py-1 text-xs text-navy-ink/65">
+            <span className="font-semibold text-navy-ink">{visible.length}</span> shown
+          </p>
+        </div>
+        <p className="max-w-2xl text-sm leading-relaxed text-navy-ink/62 md:text-[15px]">
+          A curated set of high-conviction companies we partner with across stage and sector.
+        </p>
       </section>
 
       <section className="max-w-7xl mx-auto px-6 pb-24">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((c) => (
             <a
               key={c._id}
               href={c.website || "#"}
               target="_blank"
               rel="noreferrer"
-              className="bg-card rounded-2xl p-6 border border-navy-ink/5 shadow-[var(--shadow-soft)] hover:-translate-y-1 transition-all flex flex-col gap-4 group animate-in fade-in"
+              className="group rounded-2xl border border-navy-ink/10 bg-white p-4 shadow-(--shadow-soft) transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-brand/40"
             >
-              {c.logo ? (
-                <img
-                  src={c.logo}
-                  alt={c.name}
-                  className="w-full h-40 rounded-2xl object-cover shrink-0"
-                />
-              ) : (
-                <Initials name={c.name} />
-              )}
-              <div className="min-w-0">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-gold-deep">
-                  {c.sector}
-                </span>
-                <h3 className="font-heading font-bold text-lg mt-1 group-hover:text-amber-brand transition-colors">
-                  {c.name}
-                </h3>
-                <p className="text-sm text-navy-ink/60 mt-1 leading-relaxed">{c.description}</p>
+              <div className="flex items-start gap-3.5">
+                {c.logo ? (
+                  <img
+                    src={c.logo}
+                    alt={c.name}
+                    className="size-12 shrink-0 rounded-full border border-navy-ink/10 object-cover"
+                  />
+                ) : (
+                  <Initials name={c.name} />
+                )}
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gold-deep">
+                    {c.sector || "General"}
+                  </p>
+                  <h3 className="mt-1 font-heading text-[1.36rem] font-semibold leading-tight text-navy-ink group-hover:text-amber-brand">
+                    {c.name}
+                  </h3>
+                  <p className="mt-1.5 line-clamp-2 text-[14px] leading-relaxed text-navy-ink/62">
+                    {c.description}
+                  </p>
+                </div>
               </div>
             </a>
           ))}
         </div>
         {visible.length === 0 && (
-          <p className="text-center text-navy-ink/50 py-12">No companies found.</p>
+          <div className="rounded-2xl border border-dashed border-navy-ink/20 bg-white/65 px-6 py-14 text-center">
+            <p className="text-navy-ink/60">No companies found for this sector.</p>
+          </div>
         )}
       </section>
 

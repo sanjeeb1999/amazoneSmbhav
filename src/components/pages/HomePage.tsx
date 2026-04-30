@@ -158,15 +158,20 @@ function BannerCarousel() {
             const fallback = bannerSlides[index % bannerSlides.length];
 
             return {
-              eyebrow: fallback.eyebrow,
+              eyebrow:
+                typeof banner.subtitle === "string" && banner.subtitle.trim()
+                  ? banner.subtitle
+                  : fallback.eyebrow,
               title:
                 typeof banner.title === "string" && banner.title.trim()
                   ? banner.title
                   : fallback.title,
               description:
-                typeof banner.subtitle === "string" && banner.subtitle.trim()
-                  ? banner.subtitle
-                  : fallback.description,
+                typeof banner.description === "string" && banner.description.trim()
+                  ? banner.description
+                  : typeof banner.subtitle === "string" && banner.subtitle.trim()
+                    ? banner.subtitle
+                    : fallback.description,
               ctaLabel:
                 typeof banner.ctaLabel === "string" && banner.ctaLabel.trim()
                   ? banner.ctaLabel
@@ -381,7 +386,7 @@ export function HomePage() {
         if (cancelled) return;
 
         if (apiItems.length === 0) {
-          setPortfolioItems(portfolioFallback);
+          setPortfolioItems(portfolioFallback.slice(0, 4));
           setPortfolioLoading(false);
           return;
         }
@@ -398,11 +403,11 @@ export function HomePage() {
             typeof item.category === "string" && item.category.trim() ? item.category : "General",
         }));
 
-        setPortfolioItems(mapped);
+        setPortfolioItems(mapped.slice(0, 4));
         setPortfolioLoading(false);
       } catch {
         if (!cancelled) {
-          setPortfolioItems(portfolioFallback);
+          setPortfolioItems(portfolioFallback.slice(0, 4));
           setPortfolioLoading(false);
         }
       }

@@ -1,12 +1,14 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { Pencil, Plus, Trash2, Upload, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 type BannerItem = {
   _id: string;
   title: string;
   subtitle: string;
+  description: string;
   image: string;
   ctaLabel: string;
   ctaTo: string;
@@ -21,6 +23,7 @@ type BannerApiResponse = {
 const INITIAL_FORM = {
   title: "",
   subtitle: "",
+  description: "",
   image: "",
   ctaLabel: "",
   ctaTo: "",
@@ -37,6 +40,7 @@ export default function AdminBannerPage() {
   const [success, setSuccess] = useState("");
 
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(INITIAL_FORM);
   const [deletingItem, setDeletingItem] = useState<BannerItem | null>(null);
 
@@ -58,6 +62,7 @@ export default function AdminBannerPage() {
       const data = Array.isArray(result.data) ? result.data : [];
       const normalized = data.map((item) => ({
         ...item,
+        description: item.description || item.subtitle || "",
         ctaLabel: item.ctaLabel || DEFAULT_CTA_LABEL,
         ctaTo: item.ctaTo || DEFAULT_CTA_TO,
       }));
@@ -76,6 +81,7 @@ export default function AdminBannerPage() {
 
   function resetForm() {
     setEditingId(null);
+    setShowForm(false);
     setForm(INITIAL_FORM);
   }
 
@@ -83,9 +89,11 @@ export default function AdminBannerPage() {
     setSuccess("");
     setError("");
     setEditingId(item._id);
+    setShowForm(true);
     setForm({
       title: item.title ?? "",
       subtitle: item.subtitle ?? "",
+      description: item.description ?? "",
       image: item.image ?? "",
       ctaLabel: item.ctaLabel || DEFAULT_CTA_LABEL,
       ctaTo: item.ctaTo || DEFAULT_CTA_TO,
@@ -160,6 +168,7 @@ export default function AdminBannerPage() {
     const payload: Record<string, string> = {
       title: form.title.trim(),
       subtitle: form.subtitle.trim(),
+      description: form.description.trim(),
       image: form.image.trim(),
       ctaLabel: form.ctaLabel.trim(),
       ctaTo: form.ctaTo.trim(),
@@ -168,6 +177,7 @@ export default function AdminBannerPage() {
     if (
       !payload.title ||
       !payload.subtitle ||
+      !payload.description ||
       !payload.image ||
       !payload.ctaLabel ||
       !payload.ctaTo
@@ -207,159 +217,242 @@ export default function AdminBannerPage() {
     }
   }
 
+  function initialsFromTitle(title: string) {
+    const words = title.trim().split(/\s+/).filter(Boolean);
+    return words.slice(0, 2).map((word) => word[0]?.toUpperCase() ?? "").join("") || "BN";
+  }
+
+  const isDrawerOpen = showForm || isEditMode;
+
   return (
-    <main className="min-h-dvh bg-cream-warm p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <section className="rounded-2xl border border-navy-ink/10 bg-card p-6 shadow-(--shadow-soft)">
-          <h1 className="text-2xl font-bold text-navy-ink">Banner Management</h1>
-          <p className="mt-1 text-sm text-navy-ink/70">
-            Create, edit, and delete homepage banners.
-          </p>
+    <>
+      <main className="min-h-dvh bg-gradient-to-br from-slate-50 via-sky-50/40 to-indigo-50/60 p-6">
+        <div className="mx-auto max-w-7xl space-y-5">
+          <header>
+            <h1 className="text-2xl font-bold text-navy-ink">Banner</h1>
+            <p className="text-sm text-navy-ink/60">Manage your content with ease</p>
+          </header>
 
-          <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={onSubmit}>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-navy-ink">Title</label>
-              <input
-                value={form.title}
-                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                className="w-full rounded-lg border border-navy-ink/20 bg-white px-3 py-2 text-sm outline-none focus:border-amber-brand"
-                placeholder="Banner title"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-navy-ink">Subtitle</label>
-              <input
-                value={form.subtitle}
-                onChange={(e) => setForm((prev) => ({ ...prev, subtitle: e.target.value }))}
-                className="w-full rounded-lg border border-navy-ink/20 bg-white px-3 py-2 text-sm outline-none focus:border-amber-brand"
-                placeholder="Banner subtitle"
-                required
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-navy-ink">Image URL</label>
-              <input
-                value={form.image}
-                onChange={(e) => setForm((prev) => ({ ...prev, image: e.target.value }))}
-                className="w-full rounded-lg border border-navy-ink/20 bg-white px-3 py-2 text-sm outline-none focus:border-amber-brand"
-                placeholder="https://example.com/banner.jpg"
-                required
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-navy-ink">
-                Or Upload Image (JPG/JPEG/PNG)
-              </label>
-              <input
-                type="file"
-                accept=".jpg,.jpeg,.png,image/jpeg,image/png"
-                onChange={onImageFileChange}
-                className="w-full rounded-lg border border-navy-ink/20 bg-white px-3 py-2 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-navy-ink file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-navy-ink">Button Label</label>
-              <input
-                value={form.ctaLabel}
-                onChange={(e) => setForm((prev) => ({ ...prev, ctaLabel: e.target.value }))}
-                className="w-full rounded-lg border border-navy-ink/20 bg-white px-3 py-2 text-sm outline-none focus:border-amber-brand"
-                placeholder="Explore Portfolio"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-navy-ink">Button URL</label>
-              <input
-                value={form.ctaTo}
-                onChange={(e) => setForm((prev) => ({ ...prev, ctaTo: e.target.value }))}
-                className="w-full rounded-lg border border-navy-ink/20 bg-white px-3 py-2 text-sm outline-none focus:border-amber-brand"
-                placeholder="/portfolio"
-                required
-              />
-            </div>
-
-            <div className="md:col-span-2 flex flex-wrap items-center gap-2 pt-1">
+          <section className="rounded-2xl border border-navy-ink/10 bg-white p-3 shadow-(--shadow-soft)">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <p className="rounded-xl border border-navy-ink/10 bg-cream-warm px-4 py-2.5 text-sm text-navy-ink/75">
+                {items.length} banners
+              </p>
               <button
-                type="submit"
-                disabled={submitting}
-                className="rounded-lg bg-navy-ink px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                onClick={() => {
+                  setError("");
+                  setSuccess("");
+                  setEditingId(null);
+                  setForm(INITIAL_FORM);
+                  setShowForm(true);
+                }}
+                className="inline-flex min-w-[140px] items-center justify-center gap-2 rounded-xl bg-linear-to-r from-amber-brand to-gold-deep px-4 py-2.5 text-sm font-semibold text-white shadow-(--shadow-amber)"
               >
-                {submitting ? "Saving..." : isEditMode ? "Update Banner" : "Create Banner"}
+                <Plus className="h-4 w-4" />
+                Add banner
               </button>
+            </div>
+          </section>
 
-              {isEditMode && (
+          {error && <p className="text-sm text-red-600">{error}</p>}
+
+          <section>
+            {loadingList ? (
+              <div className="rounded-2xl border border-navy-ink/10 bg-white p-6 text-sm text-navy-ink/70">
+                Loading banners...
+              </div>
+            ) : items.length === 0 ? (
+              <div className="rounded-2xl border border-navy-ink/10 bg-white p-6 text-sm text-navy-ink/60">
+                No banners found.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {items.map((item) => (
+                  <article
+                    key={item._id}
+                    className="rounded-2xl border border-navy-ink/10 bg-white p-4 shadow-(--shadow-soft)"
+                  >
+                    <div className="flex items-start justify-between">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-r from-sky-500 to-cyan-400 text-xs font-bold text-white">
+                        {initialsFromTitle(item.title)}
+                      </span>
+                    </div>
+
+                    <p className="mt-3 text-lg font-semibold text-navy-ink">{item.title}</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-navy-ink/70">{item.subtitle}</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-navy-ink/60">{item.description}</p>
+
+                    <div className="mt-4 border-t border-navy-ink/10 pt-3">
+                      <span className="text-sm text-navy-ink/65">
+                        Button: {item.ctaLabel} ({item.ctaTo})
+                      </span>
+                      <div className="mt-2 flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onEdit(item)}
+                          className="rounded-md p-1.5 text-navy-ink/70 hover:bg-navy-ink/5 hover:text-navy-ink"
+                          aria-label={`Edit ${item.title}`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={submitting}
+                          onClick={() => setDeletingItem(item)}
+                          className="rounded-md p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-60"
+                          aria-label={`Delete ${item.title}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
+
+      {isDrawerOpen && (
+        <div className="fixed inset-0 z-40 flex">
+          <button
+            type="button"
+            className="h-full flex-1 bg-navy-ink/35 backdrop-blur-[1px]"
+            onClick={() => {
+              if (!submitting) resetForm();
+            }}
+            aria-label="Close panel"
+          />
+
+          <aside className="h-full w-full max-w-xl overflow-y-auto border-l border-navy-ink/10 bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold tracking-tight text-navy-ink">
+                {isEditMode ? "Edit banner" : "Add banner"}
+              </h2>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="rounded-lg p-2 text-navy-ink/55 transition hover:bg-navy-ink/5 hover:text-navy-ink"
+                aria-label="Close panel"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={onSubmit}>
+              <div>
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-navy-ink/65">
+                  Title
+                </label>
+                <input
+                  value={form.title}
+                  onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+                  className="w-full rounded-xl border border-navy-ink/10 bg-cream-warm px-3 py-2.5 text-sm text-navy-ink outline-none focus:border-amber-brand"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-navy-ink/65">
+                  Subtitle
+                </label>
+                <input
+                  value={form.subtitle}
+                  onChange={(e) => setForm((prev) => ({ ...prev, subtitle: e.target.value }))}
+                  className="w-full rounded-xl border border-navy-ink/10 bg-cream-warm px-3 py-2.5 text-sm text-navy-ink outline-none focus:border-amber-brand"
+                  required
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-navy-ink/65">
+                  Description
+                </label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+                  className="w-full rounded-xl border border-navy-ink/10 bg-cream-warm px-3 py-2.5 text-sm text-navy-ink outline-none focus:border-amber-brand"
+                  rows={3}
+                  required
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-navy-ink/65">
+                  Banner image
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-dashed border-navy-ink/20 bg-cream-warm text-navy-ink/50">
+                    <Upload className="h-5 w-5" />
+                  </div>
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-navy-ink/15 bg-white px-4 py-2 text-sm font-semibold text-navy-ink hover:bg-cream-warm">
+                    <Upload className="h-4 w-4" />
+                    Upload
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                      onChange={onImageFileChange}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                <input
+                  value={form.image}
+                  onChange={(e) => setForm((prev) => ({ ...prev, image: e.target.value }))}
+                  className="mt-3 w-full rounded-xl border border-navy-ink/10 bg-cream-warm px-3 py-2.5 text-sm text-navy-ink outline-none focus:border-amber-brand"
+                  placeholder="Or paste image URL"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-navy-ink/65">
+                  Button label
+                </label>
+                <input
+                  value={form.ctaLabel}
+                  onChange={(e) => setForm((prev) => ({ ...prev, ctaLabel: e.target.value }))}
+                  className="w-full rounded-xl border border-navy-ink/10 bg-cream-warm px-3 py-2.5 text-sm text-navy-ink outline-none focus:border-amber-brand"
+                  placeholder="Get in Touch"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-navy-ink/65">
+                  Button URL
+                </label>
+                <input
+                  value={form.ctaTo}
+                  onChange={(e) => setForm((prev) => ({ ...prev, ctaTo: e.target.value }))}
+                  className="w-full rounded-xl border border-navy-ink/10 bg-cream-warm px-3 py-2.5 text-sm text-navy-ink outline-none focus:border-amber-brand"
+                  placeholder="/contact"
+                  required
+                />
+              </div>
+
+              <div className="md:col-span-2 flex gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 rounded-xl bg-linear-to-r from-amber-brand to-gold-deep px-4 py-2.5 text-sm font-semibold text-white shadow-(--shadow-amber) disabled:opacity-60"
+                >
+                  {submitting ? "Saving..." : isEditMode ? "Save changes" : "Create"}
+                </button>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="rounded-lg border border-navy-ink/20 bg-white px-4 py-2.5 text-sm font-semibold text-navy-ink"
+                  className="rounded-xl border border-navy-ink/15 bg-white px-6 py-2.5 text-sm font-semibold text-navy-ink"
                 >
                   Cancel
                 </button>
-              )}
-            </div>
-          </form>
-
-          {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
-        </section>
-
-        <section className="rounded-2xl border border-navy-ink/10 bg-card p-6 shadow-(--shadow-soft)">
-          <h2 className="text-lg font-semibold text-navy-ink">All Banners</h2>
-
-          {loadingList ? (
-            <p className="mt-4 text-sm text-navy-ink/70">Loading banners...</p>
-          ) : items.length === 0 ? (
-            <p className="mt-4 text-sm text-navy-ink/60">No banners found.</p>
-          ) : (
-            <div className="mt-4 space-y-3">
-              {items.map((item) => (
-                <div
-                  key={item._id}
-                  className="flex flex-col gap-4 rounded-xl border border-navy-ink/10 bg-white p-4 md:flex-row md:items-start md:justify-between"
-                >
-                  <div className="flex gap-3">
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      className="h-16 w-24 rounded-md border border-navy-ink/10 object-cover"
-                    />
-                    <div>
-                      <p className="text-sm font-semibold text-navy-ink">{item.title}</p>
-                      <p className="mt-1 text-sm text-navy-ink/70">{item.subtitle}</p>
-                      <p className="mt-1 text-xs text-navy-ink/60">
-                        Button: {item.ctaLabel} ({item.ctaTo})
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => onEdit(item)}
-                      className="rounded-lg border border-navy-ink/20 bg-white px-3 py-1.5 text-sm font-medium text-navy-ink"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      disabled={submitting}
-                      onClick={() => setDeletingItem(item)}
-                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 disabled:opacity-60"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
+              </div>
+            </form>
+          </aside>
+        </div>
+      )}
 
       {deletingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-ink/45 p-4">
@@ -388,6 +481,6 @@ export default function AdminBannerPage() {
           </div>
         </div>
       )}
-    </main>
+    </>
   );
 }
